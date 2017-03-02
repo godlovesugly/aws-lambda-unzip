@@ -58,7 +58,7 @@ def get_s3_destination_dir(bucket, key):
     zip_name = os.path.basename(key)
     name = os.path.splitext(zip_name)[0]
 
-    # 2. test that s3:livebooks/some/directory/gallery/* doesn't exist
+    # 2. test that s3:your-bucket/some/directory/gallery/* doesn't exist
     suffix = 0
     retry = True
     available_name = name
