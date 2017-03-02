@@ -89,43 +89,27 @@ def unzip_and_upload(bucket, key, target):
     # compute the s3 path
     s3_path = os.path.join(os.path.dirname(key), name)
 
-    # create locally the destination directory for the unzipped files
-    # eg:
-    # target:           /tmp/myzipfile.zip
-    # unzip_dirpath:    /tmp/myzipfile/
-    unzip_dirpath = os.path.join(tmp, name)
-    try:
-        os.stat(unzip_dirpath)
-    except:
-        os.mkdir(unzip_dirpath)
-        print(unzip_dirpath + ' created')
-
-
     zfile = zipfile.ZipFile(target)
     namelist = zfile.namelist()
     for filename in namelist:
         if filename.startswith('__MACOSX'):
             continue
 
-        localpath = os.path.join(unzip_dirpath, str(filename))
+        # skip directories
+        if filename.endswith('/'):
+            continue
 
-        if localpath.endswith('/'):
-            # print('creating directory: ' + localpath)
-            os.makedirs(localpath)
-        else:
-            # print('creating file: ' + localpath)
-            data = zfile.read(filename)
-            f = open(localpath, 'wb')
-            f.write(data)
-            f.close()
+        fileobj = zfile.open(filename)
 
-            # read mime type
-            type, encoding = mimetypes.guess_type(filename)
+        # read mime type
+        type, encoding = mimetypes.guess_type(filename)
 
-            print('uploading to s3: ' + os.path.join(s3_path, filename))
-            s3.upload_file(localpath, bucket, os.path.join(s3_path, filename),
-                            ExtraArgs={'ACL':'public-read', 'ContentType':type})
-            os.unlink( localpath )
+        extra_args = {'ACL':'public-read'}
+        if type is not None:
+            extra_args['ContentType'] = type
+
+        print('uploading to s3: ' + os.path.join(s3_path, filename + ' ['+str(type)+']'))
+        s3.upload_fileobj(fileobj, bucket, os.path.join(s3_path, filename), ExtraArgs=extra_args)
 
 
 def empty_dir(path):
